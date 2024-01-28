@@ -23,7 +23,10 @@ document.addEventListener("submit", async (e) => {
         });
 
         if (response.status !== 200) {
-            alert("Email ou mot de passe erronés");
+            const errorMessage = document.getElementById("error-message");
+            errorMessage.textContent = "E-mail ou mot de passe erroné";
+            errorMessage.style.color = "red";
+            errorMessage.style.alignSelf = "center";
         } else {
             let data = await response.json();
             sessionStorage.setItem("token", data.token);

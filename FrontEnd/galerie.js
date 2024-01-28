@@ -1,8 +1,8 @@
 const baseApiUrl = "http://localhost:5678/api/";
 
-// Fonction générique pour récupérer des données depuis l'API
-const fetchDataFromApi = async (endpoint) => {
-    const apiUrl = `${baseApiUrl}${endpoint}`;
+// Récupérer les projets
+const getWorks = async () => {
+    const apiUrl = `${baseApiUrl}works`;
 
     try {
         const response = await fetch(apiUrl);
@@ -20,23 +20,56 @@ const fetchDataFromApi = async (endpoint) => {
             `Une erreur s'est produite lors de la récupération des données depuis ${apiUrl}:`,
             error
         );
-        throw error; // Propager l'erreur pour une gestion future si nécessaire
+        throw error;
     }
-};
-
-// Récupérer les projets
-const getWorks = async () => {
-    return fetchDataFromApi("works");
 };
 
 // Récupérer les catégories
 const getCategories = async () => {
-    return fetchDataFromApi("categories");
+    const apiUrl = `${baseApiUrl}categories`;
+
+    try {
+        const response = await fetch(apiUrl);
+
+        if (!response.ok) {
+            throw new Error(
+                `La requête vers ${apiUrl} a échoué avec le statut : ${response.status}`
+            );
+        }
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error(
+            `Une erreur s'est produite lors de la récupération des données depuis ${apiUrl}:`,
+            error
+        );
+        throw error;
+    }
 };
 
 // Récupérer d'autres données
 const getSomeOtherData = async () => {
-    return fetchDataFromApi("otherData");
+    const apiUrl = `${baseApiUrl}otherData`;
+
+    try {
+        const response = await fetch(apiUrl);
+
+        if (!response.ok) {
+            throw new Error(
+                `La requête vers ${apiUrl} a échoué avec le statut : ${response.status}`
+            );
+        }
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error(
+            `Une erreur s'est produite lors de la récupération des données depuis ${apiUrl}:`,
+            error
+        );
+        throw error;
+    }
 };
 
 // Utilisation des fonctions
@@ -55,24 +88,23 @@ const init = async () => {
 };
 
 init();
-
 // FETCH data projets depuis l'API
 
 //Effectue une requête FETCH pour récupérer les données des projets
 async function fetchData() {
     try {
-        const response = await fetch(baseApiUrl + "works");
-        const data = await response.json();
+        const worksResponse = await fetch(baseApiUrl + "works");
+        const worksData = await worksResponse.json();
 
-        // Liste des catégories uniques
-        listOfUniqueCategories(data);
+        const categoriesResponse = await fetch(baseApiUrl + "categories");
+        const categoriesData = await categoriesResponse.json();
 
-        // Afficher la galerie de projets
-        displayGallery(data);
+        //Afficher la galerie de projets
+        displayGallery(worksData);
 
         // Initialise les fonctionnalités de filtre par catégorie
         const filter = document.querySelector(".filter");
-        categoryFilter(categories, filter);
+        categoryFilter(categoriesData, filter);
 
         // Active le mode administrateur
         adminUserMode(filter);
@@ -90,12 +122,9 @@ fetchData();
 //*******GALLERY*******
 
 //Active la gallerie de projets
-async function displayGallery(data) {
+const displayGallery = async (data) => {
     gallery = document.querySelector(".gallery");
     gallery.innerHTML = "";
-
-    //Utilisation d'une Promise pour simuler une opération asynchrone
-    await new Promise((resolve) => setTimeout(resolve, 0));
 
     //Pour chaque projet, crée des éléments HTML et les ajoute à la gallerie
     data.forEach((i) => {
@@ -113,54 +142,40 @@ async function displayGallery(data) {
         gallery.appendChild(workCard);
         workCard.append(workImage, workTitle);
     });
-}
+};
 
 // ********** Filtre ***********//
 
-//Générer liste de catégories uniques
-function listOfUniqueCategories(data) {
-    let listOfCategories = new Set();
-
-    //Pour chaque projet, ajout à "listOfCategories" sous forme de chaine de caractères
-    data.forEach((work) => {
-        listOfCategories.add(JSON.stringify(work.category));
-    });
-    //Création d'un tableau à partie de "listOfCategories"
-    const arrayOfStrings = [...listOfCategories];
-
-    //transformation des chaines de caractères en tableau d'objets JS
-    categories = arrayOfStrings.map((s) => JSON.parse(s));
-}
-
 //Génère des boutons filtre
-function categoryFilter(categories, filter) {
+const categoryFilter = (categories, filter) => {
     const button = document.createElement("button");
     button.innerText = "Tous";
-    button.className = "filterButton";
+    button.className = "filterButton active";
     button.dataset.category = "Tous";
     filter.appendChild(button);
     //Génère les boutons filtre en fonction des catégories
     filterButtons(categories, filter);
     //initialise le fonctionnement des filtres
     functionFilter();
-}
+    toggleProjects("Tous");
+};
 //Création des boutons de filtre
-function filterButtons(categories, filter) {
+const filterButtons = (categories, filter) => {
     categories.forEach((categorie) => {
         createButtonFilter(categorie, filter);
     });
-}
+};
 //Création d'un bouton filtre
-function createButtonFilter(categorie, filter) {
+const createButtonFilter = (categorie, filter) => {
     const button = document.createElement("button");
     button.innerText = categorie.name;
     button.className = "filterButton";
     button.dataset.category = categorie.name;
     filter.appendChild(button);
-}
+};
 
 // Fonctionnement du filtre
-function functionFilter() {
+const functionFilter = () => {
     const filterButtons = document.querySelectorAll(".filterButton");
 
     // Identification du bouton filtre cliqué et déclenche le filtre correspondant
@@ -178,10 +193,10 @@ function functionFilter() {
             toggleProjects(i.dataset.category);
         });
     });
-}
+};
 
 //Si bouton "tous" actif, montrer tous les projets, sinon ne montrer que les projets des catégories choisies
-function toggleProjects(datasetCategory) {
+const toggleProjects = (datasetCategory) => {
     const figures = document.querySelectorAll(".workCard");
     if ("Tous" === datasetCategory) {
         //Affiche tous les projets si la catégorie est "Tous"
@@ -196,11 +211,11 @@ function toggleProjects(datasetCategory) {
                 : (figure.style.display = "none");
         });
     }
-}
+};
 
 //********Mode administrateur******//
 
-async function adminUserMode() {
+const adminUserMode = async () => {
     // Mode administrateur ok si token de session présent
     if (sessionStorage.getItem("token")) {
         // Filtres cachés
@@ -236,12 +251,12 @@ async function adminUserMode() {
                 await openModal();
             });
     }
-}
+};
 
 //*********MODAL*******//
 
 //Ouverture de la modal si token ok
-const openModal = async function () {
+const openModal = async () => {
     if (sessionStorage.getItem("token")) {
         modal = document.querySelector(".modal");
         modal.style.display = "flex";
@@ -261,10 +276,10 @@ const openModal = async function () {
 };
 
 //Fermeture de la modal
-const closeModal = function (e) {
+const closeModal = (e) => {
     if (
         e.target === document.querySelector(".modal") ||
-        e.target === document.getElementsByClassName("fa-xmark")
+        e.target.classList.contains("fa-xmark")
     ) {
         document.querySelector(".modal").style.display = "none";
         document.removeEventListener("click", closeModal);
@@ -275,7 +290,7 @@ const closeModal = function (e) {
 //*************Suppresion***************/
 
 //Affichage de la gallery de la modal
-function modalGallery(data) {
+const modalGallery = (data) => {
     const modalContent = document.querySelector(".modalContent");
     modalContent.innerHTML = "";
     //Affichage tableau des projets
@@ -294,10 +309,10 @@ function modalGallery(data) {
         modalContent.appendChild(miniWork);
         miniWork.append(workImage, trashCan);
     });
-}
+};
 
 //Eventlistener de suppression de projet
-const deleteBtn = function (e) {
+const deleteBtn = (e) => {
     e.preventDefault();
     //Bouton cliqué
     if (e.target.matches(".fa-trash-can")) {
@@ -306,7 +321,7 @@ const deleteBtn = function (e) {
 };
 
 //Appel à l'API pour la suppresion
-async function deleteWork(i) {
+const deleteWork = async (i) => {
     //Authentification de l'utilisateur et réponse API
     let token = sessionStorage.getItem("token");
     try {
@@ -317,13 +332,19 @@ async function deleteWork(i) {
             },
         });
         if (response.ok) {
-            alert("Projet supprimé avec succès");
+            // Créer un élément pour le message de succès
+            const successMessage = document.createElement("div");
+            successMessage.textContent = "Projet supprimé avec succès";
+            successMessage.className = "success-message";
+            // Ajouter le message au corps du document
+            document.body.appendChild(successMessage);
             data = data.filter((work) => work.id != i);
             displayGallery(data);
             modalGallery(data);
             closeModal();
         } else {
-            alert("Erreur : " + response.status);
+            const errorMessage = await response.text();
+            console.error("Erreur : " + response.status, errorMessage);
             closeModal();
         }
     } catch (error) {
@@ -332,12 +353,12 @@ async function deleteWork(i) {
             error
         );
     }
-}
+};
 
 //*************Ajouter projet***************/
 
 //Afficher formulaire ajout de travail
-const openNewWorkForm = function (e) {
+const openNewWorkForm = (e) => {
     if (e.target === document.querySelector("#addPictureBtn")) {
         document.querySelector("#addPicture").style.display = "flex";
         document.querySelector("#editGallery").style.display = "none";
@@ -364,7 +385,7 @@ const openNewWorkForm = function (e) {
 };
 
 //prévisualiser image dans le formulaire
-const picturePreview = function () {
+const picturePreview = () => {
     const [file] = pictureInput.files;
     if (file) {
         document.querySelector("#picturePreviewImg").src =
@@ -375,7 +396,7 @@ const picturePreview = function () {
 };
 
 //Option de catégorie formulaire
-const selectCategoryForm = function () {
+const selectCategoryForm = () => {
     //reset catégories
     document.querySelector("#selectCategory").innerHTML = "";
     //première option
@@ -392,7 +413,7 @@ const selectCategoryForm = function () {
 };
 
 //Eventlistener sur l'envoie de formulaire
-const newWorkFormSubmit = function (e) {
+const newWorkFormSubmit = (e) => {
     if (e.target === document.querySelector("#valider")) {
         e.preventDefault();
         postNewWork();
@@ -400,7 +421,7 @@ const newWorkFormSubmit = function (e) {
 };
 
 //POST nouveau projet
-function postNewWork() {
+const postNewWork = () => {
     let token = sessionStorage.getItem("token");
     const select = document.getElementById("selectCategory");
     //get data depuis formulaire
@@ -419,10 +440,10 @@ function postNewWork() {
         //Envoie data collectée à l'API
         sendNewData(token, formData, title, categoryName);
     }
-}
+};
 
 //Changement de couleur du bouton si tous les champs remplis
-const changeSubmitBtnColor = function () {
+const changeSubmitBtnColor = () => {
     const select = document.getElementById("selectCategory");
     if (
         document.getElementById("title").value !== "" &&
@@ -434,7 +455,7 @@ const changeSubmitBtnColor = function () {
 };
 
 //Validation du formulaire
-const formValidation = function (image, title, categoryId) {
+const formValidation = (image, title, categoryId) => {
     if (image == undefined) {
         alert("Veuillez ajouter une image");
         return false;
@@ -452,7 +473,7 @@ const formValidation = function (image, title, categoryId) {
 };
 
 //Ajout nouveau projet dans tableau pour affichage dynamique à l'aide la réponse API
-const addToData = function (data, categoryName) {
+const addToData = (data, categoryName) => {
     newWork = {};
     newWork.title = data.title;
     newWork.id = data.id;
@@ -462,7 +483,7 @@ const addToData = function (data, categoryName) {
 };
 
 //Appel API pour nouveau projet
-async function sendNewData(token, formData, title, categoryName) {
+const sendNewData = async (token, formData, title, categoryName) => {
     try {
         const response = await fetch(`${baseApiUrl}works`, {
             method: "POST",
@@ -485,7 +506,7 @@ async function sendNewData(token, formData, title, categoryName) {
     } catch (error) {
         console.error("Erreur:", error);
     }
-}
+};
 
 // Fonction de déconnexion
 const logout = () => {

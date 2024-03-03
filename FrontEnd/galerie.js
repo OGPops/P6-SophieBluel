@@ -127,21 +127,25 @@ const displayGallery = async (data) => {
     gallery.innerHTML = "";
 
     //Pour chaque projet, crée des éléments HTML et les ajoute à la gallerie
-    data.forEach((i) => {
-        const workCard = document.createElement("figure");
-        const workImage = document.createElement("img");
-        const workTitle = document.createElement("figcaption");
-        // Attribution des valeurs et classes
-        workImage.src = i.imageUrl;
-        workImage.alt = i.title;
-        workTitle.innerText = i.title;
-        workCard.dataset.category = i.category.name;
-        workCard.className = "workCard";
+    if (Array.isArray(data)) {
+        data.forEach((i) => {
+            const workCard = document.createElement("figure");
+            const workImage = document.createElement("img");
+            const workTitle = document.createElement("figcaption");
+            // Attribution des valeurs et classes
+            workImage.src = i.imageUrl;
+            workImage.alt = i.title;
+            workTitle.innerText = i.title;
+            workCard.dataset.category = i.category.name;
+            workCard.className = "workCard";
 
-        //Ajout au DOM
-        gallery.appendChild(workCard);
-        workCard.append(workImage, workTitle);
-    });
+            //Ajout au DOM
+            gallery.appendChild(workCard);
+            workCard.append(workImage, workTitle);
+        });
+    } else {
+        console.error("data n'est pas une tableau.");
+    }
 };
 
 // ********** Filtre ***********//
@@ -278,17 +282,18 @@ const openModal = async () => {
 //Fermeture de la modal
 const closeModal = (e) => {
     if (
-        e.target === document.querySelector(".modal") ||
-        e.target.classList.contains("fa-xmark")
+        e &&
+        (e.target === document.querySelector(".modal") ||
+            e.target.classList.contains("fa-xmark"))
     ) {
         document.querySelector(".modal").style.display = "none";
         document.removeEventListener("click", closeModal);
         document.removeEventListener("click", deleteBtn);
+        clearSuccessMessage();
     }
 };
 
 //*************Suppresion***************/
-
 //Affichage de la gallery de la modal
 const modalGallery = (data) => {
     const modalContent = document.querySelector(".modalContent");
@@ -332,20 +337,29 @@ const deleteWork = async (i) => {
             },
         });
         if (response.ok) {
+            const worksData = await getWorks();
             // Créer un élément pour le message de succès
-            const successMessage = document.createElement("div");
+            const successMessage = document.getElementById("success_message");
+            if (!successMessage) {
+                successMessage = document.createElement("div");
+                successMessage.id = "success_message";
+                document.body.appendChild(successMessage);
+            }
             successMessage.textContent = "Projet supprimé avec succès";
-            successMessage.className = "success-message";
-            // Ajouter le message au corps du document
-            document.body.appendChild(successMessage);
-            data = data.filter((work) => work.id != i);
-            displayGallery(data);
-            modalGallery(data);
-            closeModal();
+            successMessage.style.color = "Green";
+            successMessage.style.marginTop = "20px";
+
+            const modalWrappers = document.querySelectorAll(".modalWrapper");
+            modalWrappers.forEach((modalWrapper) => {
+                modalWrapper.addEventListener("click", () => {
+                    successMessage.textContent = "";
+                });
+            });
+            displayGallery(worksData);
+            modalGallery(worksData);
         } else {
             const errorMessage = await response.text();
             console.error("Erreur : " + response.status, errorMessage);
-            closeModal();
         }
     } catch (error) {
         console.error(
@@ -358,7 +372,7 @@ const deleteWork = async (i) => {
 //*************Ajouter projet***************/
 
 //Afficher formulaire ajout de travail
-const openNewWorkForm = (e) => {
+const openNewWorkForm = async (e) => {
     if (e.target === document.querySelector("#addPictureBtn")) {
         document.querySelector("#addPicture").style.display = "flex";
         document.querySelector("#editGallery").style.display = "none";
@@ -366,8 +380,16 @@ const openNewWorkForm = (e) => {
         document.querySelector("#picturePreview").style.display = "none";
         document.querySelector("#valider").style.backgroundColor = "#A7A7A7";
         document.getElementById("addPictureForm").reset();
-        //Liste catégories
-        selectCategoryForm();
+        try {
+            const categories = await getCategories();
+            //Liste catégories
+            selectCategoryForm(categories);
+        } catch (error) {
+            console.error(
+                "Une erreur s'est produite lors de la récupération des catégories",
+                error
+            );
+        }
         //Afficher apperçu
         pictureInput = document.querySelector("#photo");
         pictureInput.onchange = picturePreview;
@@ -396,7 +418,7 @@ const picturePreview = () => {
 };
 
 //Option de catégorie formulaire
-const selectCategoryForm = () => {
+const selectCategoryForm = (categories) => {
     //reset catégories
     document.querySelector("#selectCategory").innerHTML = "";
     //première option
@@ -420,8 +442,28 @@ const newWorkFormSubmit = (e) => {
     }
 };
 
+//Message d'erreur
+const displayErrorMessage = (message) => {
+    // Créer un élément pour afficher le message d'erreur
+    const errorElement = document.createElement("div");
+    errorElement.classList.add("error-message");
+    errorElement.textContent = message;
+    errorElement.style.color = "red";
+
+    // Ajouter l'élément au DOM à l'endroit souhaité
+    const errorMessageContainer = document.getElementById("error");
+    errorMessageContainer.appendChild(errorElement);
+};
+
+//Effaçage des messages au fur et à mesure
+const clearErrorMessages = () => {
+    const errorMessageContainer = document.getElementById("error");
+    errorMessageContainer.innerHTML = "";
+};
+
 //POST nouveau projet
 const postNewWork = () => {
+    clearErrorMessages();
     let token = sessionStorage.getItem("token");
     const select = document.getElementById("selectCategory");
     //get data depuis formulaire
@@ -439,6 +481,8 @@ const postNewWork = () => {
         formData.append("category", categoryId);
         //Envoie data collectée à l'API
         sendNewData(token, formData, title, categoryName);
+    } else {
+        displayErrorMessage(validity);
     }
 };
 
@@ -457,23 +501,20 @@ const changeSubmitBtnColor = () => {
 //Validation du formulaire
 const formValidation = (image, title, categoryId) => {
     if (image == undefined) {
-        alert("Veuillez ajouter une image");
-        return false;
+        return "Veuillez ajouter une image";
     }
     if (title.trim().length == 0) {
-        alert("Veuillez ajouter un titre");
-        return false;
+        return "Veuillez ajouter un titre";
     }
     if (categoryId == "") {
-        alert("Veuillez choisir une catégorie");
-        return false;
-    } else {
-        return true;
+        return "Veuillez choisir une catégorie";
     }
+    return true;
 };
 
 //Ajout nouveau projet dans tableau pour affichage dynamique à l'aide la réponse API
 const addToData = (data, categoryName) => {
+    let worksData = [];
     newWork = {};
     newWork.title = data.title;
     newWork.id = data.id;
@@ -482,8 +523,14 @@ const addToData = (data, categoryName) => {
     worksData.push(newWork);
 };
 
+const clearSuccessMessage = () => {
+    const customMessageElement = document.getElementById("customMessage");
+    customMessageElement.textContent = ""; // Effacer le contenu du message
+    customMessageElement.style.display = "none"; // Masquer le message
+};
+
 //Appel API pour nouveau projet
-const sendNewData = async (token, formData, title, categoryName) => {
+const sendNewData = async (token, formData, categoryName) => {
     try {
         const response = await fetch(`${baseApiUrl}works`, {
             method: "POST",
@@ -494,18 +541,56 @@ const sendNewData = async (token, formData, title, categoryName) => {
         });
 
         if (response.ok) {
-            const data = await response.json();
-            data(data, categoryName);
-            displayGallery(data);
-            document.querySelector(".modal").style.display = "none";
-            document.removeEventListener("click", closeModal);
-            alert("Nouveau fichier envoyé avec succès : " + title);
+            const responseData = await response.json();
+            addToData(responseData, categoryName);
+            appendToGallery(responseData); // Ajoute le nouveau projet à la galerie
+            displaySuccessMessage("Nouveau projet ajouté avec succès");
+            closeModal();
         } else {
             console.error("Erreur:", response.status);
         }
     } catch (error) {
         console.error("Erreur:", error);
     }
+};
+
+const appendToGallery = (newProject) => {
+    // Créer un élément HTML pour le nouveau projet
+    const newProjectElement = createProjectElement(newProject);
+
+    // Ajouter le nouveau projet à la galerie
+    const gallery = document.querySelector(".gallery");
+    gallery.appendChild(newProjectElement);
+};
+
+const createProjectElement = (project) => {
+    // Créer un élément <figure> pour représenter le projet
+    const projectElement = document.createElement("figure");
+    //projectElement.className = "workCard";
+
+    const imageElement = document.createElement("img");
+    imageElement.src = project.imageUrl; // Définir l'URL de l'image
+    imageElement.alt = project.title; // Définir le texte alternatif de l'image
+
+    // Créer un élément <figcaption> pour afficher le titre du projet
+    const titleElement = document.createElement("figcaption");
+    titleElement.innerText = project.title; // Définir le texte du titre
+
+    // Ajouter l'image et le titre à l'élément figure
+    projectElement.appendChild(imageElement);
+    projectElement.appendChild(titleElement);
+
+    return projectElement; // Renvoyer l'élément figure
+};
+
+const displaySuccessMessage = (message) => {
+    // Récupérer l'élément HTML où afficher le message de succès
+    const customMessageElement = document.getElementById("customMessage");
+    customMessageElement.textContent = message;
+    customMessageElement.style.display = "block";
+    customMessageElement.style.color = "green";
+    customMessageElement.style.marginTop = "20px";
+    customMessageElement.style.marginLeft = "90px";
 };
 
 // Fonction de déconnexion

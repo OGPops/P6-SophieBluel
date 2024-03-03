@@ -11,7 +11,7 @@
             rel="stylesheet"
         />
         <meta name="description" content="" />
-        <link rel="stylesheet" href="../FrontEnd/assets/style.css" />
+        <link rel="stylesheet" href="assets/style.css" />
         <script src="galerie.js" defer></script>
         <script
             src="https://kit.fontawesome.com/5fcbfd7080.js"
@@ -24,6 +24,7 @@
                 <div class="modalHeader"><i class="fa-solid fa-xmark"></i></div>
                 <h3 class="modalTitle">Galerie photo</h3>
                 <div class="modalContent"></div>
+                <div id="success_message"></div>
                 <button id="addPictureBtn">Ajouter une photo</button>
                 <a href="#" id="deleteGallery">Supprimer la galerie</a>
             </div>
@@ -61,6 +62,7 @@
                             accept="image/png, image/jpeg"
                             required
                         />
+                        <div id="error"></div>
                         <label for="title">Titre</label>
                         <input type="text" id="title" name="title" required />
                         <label for="selectCategory">Catégorie</label>
@@ -69,6 +71,7 @@
                             name="selectCategory"
                         ></select>
                     </form>
+                    <div id="customMessage"></div>
                 </div>
                 <input type="submit" id="valider" value="valider" />
             </div>

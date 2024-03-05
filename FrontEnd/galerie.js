@@ -498,19 +498,85 @@ const changeSubmitBtnColor = () => {
     }
 };
 
-//Validation du formulaire
-const formValidation = (image, title, categoryId) => {
-    if (image == undefined) {
+// Fonction de validation d'image
+function validateImage(image) {
+    // Vérifier si une image a été sélectionnée
+    if (!(image instanceof File)) {
         return "Veuillez ajouter une image";
     }
-    if (title.trim().length == 0) {
+    // Vérifier la taille de l'image
+    if (image.size > 4194304) {
+        // 4 Mo en octets
+        return "L'image est trop grande. Veuillez sélectionner une image de taille inférieure à 4 Mo.";
+    }
+    // Vérifier le type de l'image
+    const allowedExtensions = ["image/jpeg", "image/png"]; // Types de fichiers autorisés
+    if (!allowedExtensions.includes(image.type)) {
+        return "Veuillez sélectionner une image au format JPEG ou PNG.";
+    }
+    // Si tout est valide, retourner true
+    return true;
+}
+
+//Validation du formulaire
+const formValidation = (image, title, categoryId) => {
+    // Valider le titre
+    if (title.trim().length === 0) {
         return "Veuillez ajouter un titre";
     }
-    if (categoryId == "") {
+    // Valider la catégorie
+    if (categoryId === "") {
         return "Veuillez choisir une catégorie";
     }
+
+    // Si tout est valide, retourner true
     return true;
 };
+
+// Gestionnaire d'événements pour la sélection de fichier
+document.getElementById("photo").addEventListener("change", function (event) {
+    const fileInput = event.target;
+    const file = fileInput.files[0];
+
+    // Sélectionnez l'élément où vous souhaitez afficher le message d'erreur
+    const errorMessageContainer = document.getElementById("error");
+
+    // Supprimez les messages d'erreur précédents s'il y en a
+    errorMessageContainer.innerHTML = "";
+
+    // Vérifiez si un fichier a été sélectionné
+    if (file) {
+        // Vérifiez le type de fichier
+        if (file.type !== "image/jpg" && file.type !== "image/png") {
+            // Créez un élément paragraphe pour afficher le message d'erreur
+            const errorMessage = document.createElement("p");
+            errorMessage.textContent =
+                "Veuillez sélectionner une image au format JPG ou PNG.";
+            errorMessage.style.color = "red";
+
+            // Ajoutez le message d'erreur à l'élément de conteneur
+            errorMessageContainer.appendChild(errorMessage);
+
+            // Effacez la sélection de fichier
+            fileInput.value = "";
+        } else if (file.size > 4194304) {
+            // Vérifiez la taille de l'image (4 Mo en octets)
+            // Créez un élément paragraphe pour afficher le message d'erreur
+            const errorMessage = document.createElement("p");
+            errorMessage.textContent =
+                "Veuillez sélectionner une image de taille inférieure à 4 Mo.";
+
+            // Changez la couleur du texte en rouge
+            errorMessage.style.color = "red";
+
+            // Ajoutez le message d'erreur à l'élément de conteneur
+            errorMessageContainer.appendChild(errorMessage);
+
+            // Effacez la sélection de fichier
+            fileInput.value = "";
+        }
+    }
+});
 
 //Ajout nouveau projet dans tableau pour affichage dynamique à l'aide la réponse API
 const addToData = (data, categoryName) => {
